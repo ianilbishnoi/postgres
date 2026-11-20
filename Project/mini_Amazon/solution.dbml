@@ -1,0 +1,49 @@
+Table customers {
+  customer_id bigint [pk, increment]
+  email       text [not null, unique]
+  full_name   text [not null]
+  city        text [not null]
+  created_at  timestamptz [not null, default: `now()`]
+}
+
+Table categories {
+  category_id bigint [pk, increment]
+  name        text [not null, unique]
+}
+
+Table products {
+  product_id  bigint [pk, increment]
+  sku         text [not null, unique]
+  category_id bigint [not null, ref: > categories.category_id]
+  name        text [not null]
+  price       numeric(10,2) [not null]
+
+  indexes {
+    category_id
+  }
+}
+
+Table orders {
+  order_id     bigint [pk, increment]
+  order_number text [not null, unique]
+  customer_id  bigint [not null, ref: > customers.customer_id]
+  status       text [not null, default: 'placed', note: 'placed | shipped | delivered | cancelled']
+  ordered_at   timestamptz [not null, default: `now()`]
+
+  indexes {
+    customer_id
+    ordered_at
+  }
+}
+
+Table order_items {
+  order_id   bigint [not null, ref: > orders.order_id]
+  product_id bigint [not null, ref: > products.product_id]
+  quantity   integer [not null]
+  unit_price numeric(10,2) [not null, note: 'price paid at purchase']
+
+  indexes {
+    (order_id, product_id) [pk]
+    product_id
+  }
+}
