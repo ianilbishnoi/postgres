@@ -1,63 +1,34 @@
-# Mini Amazon Marketplace: PostgreSQL Schema
+# Mini Amazon: PostgreSQL Schema
 
-A very small Amazon-style marketplace database. Sellers list products in a category tree, customers save shipping addresses and place orders, orders have line items and payments, and customers review products they bought.
+A very small Amazon-style store: customers place orders for products, and products belong to categories.
 
-- **9 tables:** customers, addresses, sellers, categories, products, orders, order_items, payments, reviews
-- **Constraints:** primary keys, foreign keys (including one composite FK), NOT NULL, UNIQUE, CHECK
-- **Indexes:** every foreign key, plus composite, partial and expression indexes for the main queries
-- **Sample data:** 50 orders / 91 order lines in one flat CSV, normalized into the tables on load
+**5 tables:** `customers`, `categories`, `products`, `orders`, `order_items`
 
 ## Files
 
-```
-.
-├── schema.sql          # CREATE TABLE + constraints + indexes + optional CSV load
-├── solution.dbml       # same model for dbdiagram.io
-├── solution.pdf        # written explanation (tables, FKs, tradeoff, indexing, normalization)
-└── data/
-    └── records.csv     # flat order-line export (sample data)
-```
+| File | What it is |
+|---|---|
+| `schema.sql` | All CREATE TABLE statements, keys, constraints and indexes, plus an optional CSV load |
+| `solution.dbml` | The same design for [dbdiagram.io](https://dbdiagram.io/d) |
+| `solution.pdf` | Written explanation: tables, relationships, tradeoff, indexing, normalization |
+| `data/records.csv` | Sample data: 25 orders, 44 order lines |
 
 ## Run it
 
-Requires PostgreSQL 13 or newer (tested on 16). Run from the Project/mini_Amazon folder (cd Project/mini_Amazon), because the data load reads data/records.csv from there
+Run from this folder (`cd Project/mini_Amazon`):
 
 ```bash
 createdb mini_amazon
-
-# create the tables only
-psql -v ON_ERROR_STOP=1 -d mini_amazon -f schema.sql
-
-# create the tables AND load data/records.csv
-psql -v ON_ERROR_STOP=1 -v load_data=1 -d mini_amazon -f schema.sql
+psql -d mini_amazon -f schema.sql                  # create tables only
+psql -d mini_amazon -v load_data=1 -f schema.sql   # create tables + load the CSV
 ```
 
-`schema.sql` drops and recreates every table, so it is safe to run again. **To update the data**, edit or add rows in `data/records.csv` and run the second command again.
+To update the data, edit `data/records.csv` and run the second command again.
 
-Expected row counts after loading:
+Expected rows after loading: customers 9, categories 4, products 12, orders 25, order_items 44.
 
-| table | rows |
-|---|---|
-| customers | 18 |
-| addresses | 24 |
-| sellers | 6 |
-| categories | 13 |
-| products | 23 |
-| orders | 50 |
-| order_items | 91 |
-| payments | 50 |
-| reviews | 30 |
+## Design in short
 
-## View the ER diagram
-
-Open [dbdiagram.io](https://dbdiagram.io/d), clear the editor, and paste in the contents of `solution.dbml`.
-
-## Design notes 
-
-
-
-- **Price snapshot:** `order_items.unit_price` stores the price actually charged, so later price changes never rewrite past orders.
-- **Totals are derived:** order totals are computed by the `order_totals` view, not stored on `orders`.
-- **Composite FK:** `orders (shipping_address_id, customer_id) → addresses (address_id, customer_id)` makes sure an order can only ship to the ordering customer's own address.
-- **Keys:** identity integer surrogate keys, with real-world identifiers kept as `UNIQUE` columns.
-- **Indexes:** Postgres does not index foreign keys automatically, so each FK has one, either its own or as the leading column of a composite index.
+- `order_items` links orders and products (many-to-many) and stores `unit_price`, the price actually paid, so later price changes don't alter old orders.
+- Every foreign key has an index, because PostgreSQL only indexes primary keys and UNIQUE columns automatically.
+- The flat CSV is split into 5 tables to remove repeated data (normalized to 3NF).
