@@ -20,7 +20,7 @@ A very small Amazon-style marketplace database. Sellers list products in a categ
 
 ## Run it
 
-Requires PostgreSQL 13 or newer (tested on 16). Run from the repo root.
+Requires PostgreSQL 13 or newer (tested on 16). Run from the Project/mini_Amazon folder (cd Project/mini_Amazon), because the data load reads data/records.csv from there
 
 ```bash
 createdb mini_amazon
